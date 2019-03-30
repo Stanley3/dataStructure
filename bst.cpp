@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stack>
 #include <queue>
+#include <memory>
 
 using namespace std;
 
@@ -12,18 +13,11 @@ class Node
 {
 public:
   int data;
-  Node *parent;
-  Node *left;
-  Node *right;
+  shared_ptr<Node> parent;
+  shared_ptr<Node> left;
+  shared_ptr<Node> right;
   Node(): data(-1), parent(NULL), left(NULL), right(NULL) {}
   Node(int num): data(num), parent(NULL), left(NULL), right(NULL) {}
-  ~Node()
-  {
-    if (left != NULL)
-      delete left;
-    if (right != NULL)
-      delete right;
-  }
 };
 
 class Tree
@@ -32,7 +26,7 @@ public:
   Tree(int num[], int len);
   void insertNode1(int data); //递归实现插入
   void insertNode(int data); //非递归实现插入
-  Node *searchNode(int data);
+  shared_ptr<Node> searchNode(int data);
   void deleteNode(int data);
   void inOrderTree(); // 递归实现
   void inOrderTree1(); // 非递归实现
@@ -43,22 +37,21 @@ public:
   void levelOrderTree(); // 层次遍历
   ~Tree()
   {
-    if (root != NULL)
-      delete root;
+    deleteNode(root);
   }
 private:
-  void insertNode(Node *current, int data);
-  Node *searchNode(Node *current, int data);
-  void deleteNode(Node *current);
-  void inOrderTree(Node *current);
-  void preOrderTree(Node *current);
-  void postOrderTree(Node *current);
-  Node *root;
+  void insertNode(shared_ptr<Node> current, int data);
+  shared_ptr<Node> searchNode(shared_ptr<Node> current, int data);
+  void deleteNode(shared_ptr<Node> current);
+  void inOrderTree(shared_ptr<Node> current);
+  void preOrderTree(shared_ptr<Node> current);
+  void postOrderTree(shared_ptr<Node> current);
+  shared_ptr<Node> root;
 };
 
 Tree::Tree(int num[], int len)
 {
-  root = new Node(num[0]);
+  root = make_shared<Node>(Node(num[0]));
   for (int i=1; i<len; ++i) {
     insertNode1(num[i]);
   }
@@ -68,18 +61,18 @@ void Tree::insertNode1(int data)
 {
   insertNode(root, data);
 }
-void Tree::insertNode(Node *current, int data)
+void Tree::insertNode(shared_ptr<Node> current, int data)
 {
   if (current->data > data) {
     if (current->left == NULL) {
-      current->left = new Node(data);
+      current->left = make_shared<Node>(Node(data));
       current->left->parent = current;
     } else {
       insertNode(current->left, data);
     }
   } else if (current->data < data) {
     if (current->right == NULL) {
-      current->right = new Node(data);
+      current->right = make_shared<Node>(Node(data));
       current->right->parent = current;
     } else {
       insertNode(current->right, data);
@@ -91,7 +84,7 @@ void Tree::insertNode(Node *current, int data)
 
 void Tree::insertNode(int data)
 {
-  Node *p, *prev_p, *newNode;
+  shared_ptr<Node> p, prev_p, newNode;
   p = root;
   prev_p = NULL;
   while(p) {
@@ -104,7 +97,7 @@ void Tree::insertNode(int data)
       return;
   }
 
-  newNode = new Node(data);
+  newNode = make_shared<Node>(Node(data));
   newNode->parent = prev_p;
   if (prev_p->data > data)
     prev_p->left = newNode;
@@ -112,12 +105,12 @@ void Tree::insertNode(int data)
     prev_p->right = newNode;
 }
 
-Node * Tree::searchNode(int data)
+shared_ptr<Node>  Tree::searchNode(int data)
 {
   return searchNode(root, data);
 }
 
-Node * Tree::searchNode(Node *current, int data)
+shared_ptr<Node>  Tree::searchNode(shared_ptr<Node> current, int data)
 {
   if (current == NULL)
     return NULL;
@@ -132,13 +125,16 @@ Node * Tree::searchNode(Node *current, int data)
 
 void Tree::deleteNode(int data)
 {
-  Node *n = searchNode(data);
+  shared_ptr<Node> n = searchNode(data);
   if (n != NULL)
     deleteNode(n);
 }
 
-void Tree::deleteNode(Node *current)
+void Tree::deleteNode(shared_ptr<Node> current)
 {
+  if (current == NULL)
+    return;
+
   if (current->left != NULL)
     deleteNode(current->left);
 
@@ -146,17 +142,13 @@ void Tree::deleteNode(Node *current)
     deleteNode(current->right);
 
   if (current->parent == NULL) {
-    delete current;
     root = NULL;
-    return;
-  }
-
-  if (current->parent->data > current->data)
+  } else if (current->parent->data > current->data)
     current->parent->left = NULL;
   else
     current->parent->right = NULL;
 
-  delete current;
+  current = NULL;
 }
 
 void Tree::inOrderTree()
@@ -164,7 +156,7 @@ void Tree::inOrderTree()
   inOrderTree(root);
 }
 
-void Tree::inOrderTree(Node *current)
+void Tree::inOrderTree(shared_ptr<Node> current)
 {
   if (current != NULL) {
     inOrderTree(current->left);
@@ -175,8 +167,8 @@ void Tree::inOrderTree(Node *current)
 
 void Tree::inOrderTree1()
 {
-  stack<Node *> stack;
-  Node *p;
+  stack<shared_ptr<Node> > stack;
+  shared_ptr<Node> p;
   p = root;
   while (p != NULL || !stack.empty()) {
     while(p != NULL) {
@@ -198,7 +190,7 @@ void Tree::preOrderTree()
   preOrderTree(root);
 }
 
-void Tree::preOrderTree(Node *current)
+void Tree::preOrderTree(shared_ptr<Node> current)
 {
   if (current != NULL) {
     processData(current->data);
@@ -209,8 +201,8 @@ void Tree::preOrderTree(Node *current)
 
 void Tree::preOrderTree1()
 {
-  stack<Node *> stack;
-  Node *p = root;
+  stack<shared_ptr<Node> > stack;
+  shared_ptr<Node> p = root;
 
   while (p != NULL || !stack.empty()) {
 
@@ -233,7 +225,7 @@ void Tree::postOrderTree()
   postOrderTree(root);
 }
 
-void Tree::postOrderTree(Node *current)
+void Tree::postOrderTree(shared_ptr<Node> current)
 {
   if (current != NULL) {
     postOrderTree(current->left);
@@ -248,8 +240,8 @@ void Tree::postOrderTree(Node *current)
  */
 void Tree::postOrderTree1()
 {
-  stack<Node *> stack;
-  Node *cur, *pre = NULL;
+  stack<shared_ptr<Node> > stack;
+  shared_ptr<Node> cur, pre = NULL;
   if (root != NULL)
     stack.push(root);
 
@@ -271,8 +263,8 @@ void Tree::postOrderTree1()
 
 void Tree::levelOrderTree()
 {
-  queue<Node *> q;
-  Node *p = root;
+  queue<shared_ptr<Node> > q;
+  shared_ptr<Node> p = root;
   if (root != NULL)
     q.push(root);
 
